@@ -15,14 +15,25 @@
 
 ## 安装
 
+### 方式一：插件市场
+
+在 AstrBot WebUI →「插件」→「插件市场」搜索 更好的QQ聊天交互，安装后重载。
+
+### 方式二：GitHub
+
 ```bash
 cd <AstrBot根目录>/data/plugins
 git clone https://github.com/AcceleratorYue/astrbot_plugin_better_qq_chat
 ```
 
-或复制到 AstrBot 插件目录；市场发布后再补市场搜索入口。
+### 方式三：本地目录
 
-安装后在插件管理页重载插件，或重启 AstrBot。
+```bash
+# 把本目录复制到
+<AstrBot根目录>/data/plugins/astrbot_plugin_better_qq_chat
+```
+
+然后在 AstrBot WebUI →「插件管理」重载插件，或重启 AstrBot。
 
 ## 工具
 
