@@ -46,11 +46,16 @@ from .core.rules import (
 
 PLUGIN_NAME = "astrbot_plugin_better_qq_chat"
 DISPLAY_NAME = "更好的QQ聊天交互"
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 LOG = f"[{PLUGIN_NAME}]"
 WAKE_HINT = (
     "[互动提示] 如果当前语气和氛围合适，可以考虑用 qq_poke 戳一下唤醒你的人；"
     "不要强行使用，也不要连续戳。"
+)
+ACTIVE_REPLY_HINT = (
+    "[互动提示] 这是一次群聊主动回复。如果当前语气和氛围合适，"
+    "可以考虑用 qq_poke 戳一下发言人，或用 qq_react 给当前消息贴一个小表情；"
+    "不要强行使用，也不要连续互动。"
 )
 DEDUP_LIMIT = 2000
 
@@ -255,19 +260,29 @@ class BetterQQChatPlugin(Star):
 
     @filter.on_llm_request(priority=-50)
     async def inject_poke_hint(self, event: AstrMessageEvent, req) -> None:
-        if not self._enabled() or not self._bool("poke_wake_hint_enabled", True):
+        if not self._enabled() or not is_aiocqhttp(event):
             return
-        if not is_aiocqhttp(event):
-            return
+        wake = False
         try:
-            if not event.is_at_or_wake_command:
-                return
+            wake = bool(event.is_at_or_wake_command)
         except Exception:
+            pass
+        active_reply = False
+        try:
+            active_reply = bool(event.get_extra("active_reply_triggered", False))
+        except Exception:
+            pass
+        wake_allowed = wake and self._bool("poke_wake_hint_enabled", True)
+        active_allowed = active_reply and self._bool(
+            "active_reply_hint_enabled", True
+        )
+        if not wake_allowed and not active_allowed:
             return
         prompt = str(getattr(req, "system_prompt", "") or "")
         if "qq_poke" in prompt:
             return
-        req.system_prompt = prompt + ("\n\n" if prompt else "") + WAKE_HINT
+        hint = WAKE_HINT if wake_allowed else ACTIVE_REPLY_HINT
+        req.system_prompt = prompt + ("\n\n" if prompt else "") + hint
 
     # ------------------------------------------------------------------ #
     # 戳一戳 / 表情回应 notice

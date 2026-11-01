@@ -58,6 +58,9 @@ class FakeEvent:
     def is_admin(self):
         return False
 
+    def get_extra(self, key, default=None):
+        return getattr(self, key, default)
+
     async def send(self, chain):
         self.sent.append(chain)
 
@@ -141,6 +144,18 @@ class ToolTests(unittest.TestCase):
         asyncio.run(self.plugin._handle_poke_notice(event, notice))
         self.assertFalse(event.bot.calls)
         self.assertTrue(self.plugin._last_poked)
+
+    def test_active_reply_hint(self):
+        class Req:
+            system_prompt = ""
+
+        event = FakeEvent()
+        event.is_at_or_wake_command = False
+        event.active_reply_triggered = True
+        req = Req()
+        asyncio.run(self.plugin.inject_poke_hint(event, req))
+        self.assertIn("主动回复", req.system_prompt)
+        self.assertIn("qq_react", req.system_prompt)
 
     def test_wake_hint(self):
         class Req:

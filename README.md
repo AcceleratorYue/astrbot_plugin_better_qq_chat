@@ -87,6 +87,18 @@ qq_avatar(user="sender", send_to_chat=False)
 
 是否戳完全由模型决定；可通过 `poke_wake_hint_enabled=false` 关闭。
 
+### 主动回复
+
+AstrBot 的群聊主动回复触发时，本插件会识别 `active_reply_triggered` 标记，并追加：
+
+```text
+[互动提示] 这是一次群聊主动回复。如果当前语气和氛围合适，
+可以考虑用 qq_poke 戳一下发言人，或用 qq_react 给当前消息贴一个小表情；
+不要强行使用，也不要连续互动。
+```
+
+同样只给提示，不自动戳/贴；可通过 `active_reply_hint_enabled=false` 关闭。
+
 ### 跟戳
 
 别人戳别人时：
@@ -121,6 +133,7 @@ qq_avatar(user="sender", send_to_chat=False)
 | `audit_enabled` | `true` | 写审计日志 |
 | `poke_tool_enabled` | `true` | 启用 `qq_poke` |
 | `poke_wake_hint_enabled` | `true` | 被唤醒时注入可选提示 |
+| `active_reply_hint_enabled` | `true` | 主动回复轮次注入互动提示 |
 | `poke_max_times` | `2` | 单次最多戳几次（1-3） |
 | `poke_allow_private` | `true` | 允许私聊戳 |
 | `follow_poke_enabled` | `true` | 别人戳别人时自动跟戳 |

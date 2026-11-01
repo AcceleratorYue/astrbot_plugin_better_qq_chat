@@ -20,6 +20,12 @@
     "default": true,
     "hint": "只注入一句提示，是否戳由模型决定。"
   },
+  "active_reply_hint_enabled": {
+    "description": "AstrBot 主动回复时注入互动提示",
+    "type": "bool",
+    "default": true,
+    "hint": "主动回复轮次也提示模型可考虑 qq_poke / qq_react；不强制。"
+  },
   "poke_max_times": {
     "description": "单次工具调用最多戳几次",
     "type": "int",
