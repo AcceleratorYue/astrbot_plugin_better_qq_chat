@@ -158,7 +158,7 @@ data/plugin_data/astrbot_plugin_better_qq_chat/audit.log
 - `set_msg_emoji_like` 需要 NapCat / Lagrange 支持；
 - 表情 ID 来自公开表情表，需在目标协议端真机验证；
 - AstrBot 不暴露 Bot 发消息 ID，撤回只支持“被引用消息”；
-- 与 `astrbot_plugin_poke_to_llm` 同时启用时，戳 Bot 可能有两个插件响应，建议二选一；
+- 与 `astrbot_plugin_poke_to_llm` 同时启用时：对方仍会响应“Bot 被戳”，本插件只记录，不会重复文本回复；如果希望被戳只记录，需要关闭对方插件。
 - 与 `astrbot_plugin_face_echo` 同时启用时可能重复跟贴，建议只开一个。
 
 ## 开发
