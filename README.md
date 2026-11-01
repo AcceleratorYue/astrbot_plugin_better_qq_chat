@@ -1,3 +1,5 @@
+![logo](logo.png)
+
 # 更好的QQ聊天交互 · `astrbot_plugin_better_qq_chat`
 
 给 [AstrBot](https://github.com/AstrBotDevs/AstrBot) 的 QQ Bot 增加更自然的互动能力：
