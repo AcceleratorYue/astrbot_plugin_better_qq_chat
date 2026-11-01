@@ -1,0 +1,124 @@
+{
+  "enable": {
+    "description": "总开关",
+    "type": "bool",
+    "default": true
+  },
+  "audit_enabled": {
+    "description": "记录审计日志",
+    "type": "bool",
+    "default": true
+  },
+  "poke_tool_enabled": {
+    "description": "启用 qq_poke 工具",
+    "type": "bool",
+    "default": true
+  },
+  "poke_wake_hint_enabled": {
+    "description": "被唤醒时注入可考虑戳一戳的短提示",
+    "type": "bool",
+    "default": true,
+    "hint": "只注入一句提示，是否戳由模型决定。"
+  },
+  "poke_max_times": {
+    "description": "单次工具调用最多戳几次",
+    "type": "int",
+    "default": 2,
+    "min": 1,
+    "max": 3
+  },
+  "poke_allow_private": {
+    "description": "允许私聊戳一戳",
+    "type": "bool",
+    "default": true
+  },
+  "follow_poke_enabled": {
+    "description": "别人戳别人时自动跟戳",
+    "type": "bool",
+    "default": true
+  },
+  "follow_poke_probability": {
+    "description": "跟戳概率",
+    "type": "float",
+    "default": 0.15,
+    "min": 0.0,
+    "max": 1.0,
+    "hint": "默认低概率；设为 0 等于关闭。"
+  },
+  "follow_poke_cooldown": {
+    "description": "跟戳冷却（秒/群）",
+    "type": "int",
+    "default": 30,
+    "min": 0,
+    "max": 3600
+  },
+  "follow_poke_target": {
+    "description": "跟戳目标",
+    "type": "string",
+    "default": "original",
+    "hint": "original=戳原来被戳的人；sender=戳发起者。"
+  },
+  "follow_poke_groups": {
+    "description": "允许跟戳的群号白名单",
+    "type": "string",
+    "default": "",
+    "hint": "逗号分隔；留空表示所有群。"
+  },
+  "blocked_groups": {
+    "description": "禁用群号黑名单",
+    "type": "string",
+    "default": ""
+  },
+  "blocked_users": {
+    "description": "禁用用户 QQ 黑名单",
+    "type": "string",
+    "default": ""
+  },
+  "reaction_tool_enabled": {
+    "description": "启用 qq_react 工具",
+    "type": "bool",
+    "default": true
+  },
+  "reaction_follow_enabled": {
+    "description": "别人贴表情时自动跟贴",
+    "type": "bool",
+    "default": false
+  },
+  "reaction_follow_probability": {
+    "description": "跟贴表情概率",
+    "type": "float",
+    "default": 0.1,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "reaction_follow_cooldown": {
+    "description": "跟贴表情冷却（秒/群）",
+    "type": "int",
+    "default": 30,
+    "min": 0,
+    "max": 3600
+  },
+  "reaction_max_faces": {
+    "description": "一次最多跟贴几个表情",
+    "type": "int",
+    "default": 1,
+    "min": 1,
+    "max": 3
+  },
+  "recall_tool_enabled": {
+    "description": "启用 qq_recall 工具",
+    "type": "bool",
+    "default": true
+  },
+  "recall_allow_others": {
+    "description": "允许管理员/群管理员撤回被引用的他人消息",
+    "type": "bool",
+    "default": true,
+    "hint": "关闭后只能撤回 Bot 自己的消息。"
+  },
+  "avatar_tool_enabled": {
+    "description": "启用 qq_avatar 工具",
+    "type": "bool",
+    "default": true
+  }
+}
