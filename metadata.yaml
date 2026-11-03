@@ -1,18 +1,19 @@
 name: astrbot_plugin_better_qq_chat
 display_name: 更好的QQ聊天交互
-short_desc: 让 Bot 会戳一戳、贴表情、撤回被引用消息和获取 QQ 头像。
+short_desc: 让 Bot 会戳一戳、被戳反戳、贴表情、撤回被引用消息和获取 QQ 头像。
 desc: |-
   让 AstrBot 在 QQ 里拥有更自然的互动能力：
 
   1. 戳一戳：LLM 可自主调用 qq_poke；被唤醒时只给一句可选提示；
   2. 跟戳：别人戳别人时按低概率和冷却自动跟戳；
-  3. 表情回应：qq_react 给被引用/当前消息贴小表情；可选跟贴；
-  4. 撤回：qq_recall 撤回用户直接引用的消息；
-  5. 头像：qq_avatar 获取 QQ 用户高清头像，可选发送到聊天。
+  3. 被戳反戳：Bot 被戳时按概率反戳，并可与 poke_to_llm 的文本响应协作或避让；
+  4. 表情回应：qq_react 给被引用/当前消息贴小表情；可选跟贴；
+  5. 撤回：qq_recall 撤回用户直接引用的消息；
+  6. 头像：qq_avatar 获取 QQ 用户高清头像，可选发送到聊天。
 
   仅支持 aiocqhttp（OneBot v11 / NapCat / Lagrange）。
   不修改消息链，不额外调用 LLM 生成跟戳/跟贴内容。
-version: 0.1.1
+version: 0.1.3
 author: AcceleratorYue
 repo: https://github.com/AcceleratorYue/astrbot_plugin_better_qq_chat
 astrbot_version: ">=4.24,<5"

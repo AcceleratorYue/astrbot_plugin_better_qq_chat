@@ -54,6 +54,16 @@ def raw_notice(event: AstrMessageEvent) -> dict[str, Any] | None:
     return raw
 
 
+def _self_id(event: AstrMessageEvent, raw: dict[str, Any]) -> str:
+    """优先使用 AstrBot 事件的 bot ID，避免部分适配器 raw self_id 不准确。"""
+
+    try:
+        value = str(event.get_self_id() or "")
+    except Exception:
+        value = ""
+    return value or str(raw.get("self_id") or "")
+
+
 def parse_poke_notice(event: AstrMessageEvent) -> PokeNotice | None:
     raw = raw_notice(event)
     if raw is None:
@@ -66,7 +76,7 @@ def parse_poke_notice(event: AstrMessageEvent) -> PokeNotice | None:
         user_id=str(raw.get("user_id") or ""),
         target_id=str(raw.get("target_id") or ""),
         group_id=str(raw.get("group_id") or ""),
-        self_id=str(raw.get("self_id") or getattr(event, "get_self_id", lambda: "")()),
+        self_id=_self_id(event, raw),
     )
 
 
@@ -99,5 +109,5 @@ def parse_reaction_notice(event: AstrMessageEvent) -> ReactionNotice | None:
         user_id=str(raw.get("user_id") or ""),
         message_id=message_id,
         emoji_ids=tuple(emoji_ids),
-        self_id=str(raw.get("self_id") or getattr(event, "get_self_id", lambda: "")()),
+        self_id=_self_id(event, raw),
     )

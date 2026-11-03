@@ -6,6 +6,7 @@
 
 - **戳一戳**：LLM 可自主调用 `qq_poke`；被唤醒时只给一句可选提示，不强制；
 - **跟戳**：别人戳别人时，按低概率和冷却自动跟戳；
+- **被戳反戳**：Bot 被戳时，按概率反戳发起者；可与 `poke_to_llm` 的文本响应共存或避让；
 - **表情回应**：`qq_react` 给当前/被引用消息贴 QQ 小表情；可选跟贴；
 - **撤回**：`qq_recall` 撤回用户直接引用的消息；
 - **头像**：`qq_avatar` 获取 QQ 用户高清头像，可选直接发到聊天。
@@ -126,6 +127,27 @@ AstrBot 的群聊主动回复触发时，本插件会识别 `active_reply_trigge
 - Bot 自己发出的戳：忽略；
 - 关闭：`follow_poke_enabled=false` 或 `follow_poke_probability=0`。
 
+### 被戳反戳
+
+Bot 被用户戳时，除了记录事件，还可以按配置反戳发起者：
+
+```text
+概率 0.35 + 每群/每用户 30 秒冷却
+```
+
+- `poke_back_enabled=false` 或 `poke_back_probability=0` 关闭；
+- 群聊调用 `group_poke`，私聊调用 `friend_poke`，失败回退 `send_poke`；
+- 群白名单/黑名单和用户黑名单沿用本插件配置。
+
+与 `astrbot_plugin_poke_to_llm` 的区分：
+
+| `poke_back_mode` | 行为 |
+|---|---|
+| `coexist`（默认） | 反戳和 `poke_to_llm` 的文本响应可以同时发生 |
+| `only_if_no_llm_poke` | 检测到 `poke_to_llm` 已启用时，只记录被戳，不反戳，避免双重响应 |
+
+如果希望被戳时**只反戳、不额外文本回复**，可将 `poke_to_llm` 配置为不响应，或使用 `only_if_no_llm_poke` 后关闭对方插件。
+
 ### 跟贴表情
 
 别人给消息贴表情时，可选按概率跟贴同一表情：
@@ -149,6 +171,11 @@ AstrBot 的群聊主动回复触发时，本插件会识别 `active_reply_trigge
 | `active_reply_hint_enabled` | `true` | 主动回复轮次注入互动提示 |
 | `poke_max_times` | `2` | 单次最多戳几次（1-3） |
 | `poke_allow_private` | `true` | 允许私聊戳 |
+| `poke_back_enabled` | `true` | 被戳时反戳 |
+| `poke_back_probability` | `0.35` | 被戳反戳概率 |
+| `poke_back_cooldown` | `30` | 被戳反戳冷却（秒/群或用户） |
+| `poke_back_allow_private` | `true` | 私聊被戳时也允许反戳 |
+| `poke_back_mode` | `coexist` | `coexist`=与 `poke_to_llm` 共存；`only_if_no_llm_poke`=检测到对方启用时不反戳 |
 | `follow_poke_enabled` | `true` | 别人戳别人时自动跟戳 |
 | `follow_poke_probability` | `0.15` | 跟戳概率 |
 | `follow_poke_cooldown` | `30` | 跟戳冷却（秒/群） |
@@ -181,6 +208,9 @@ data/plugin_data/astrbot_plugin_better_qq_chat/audit.log
 ## 已知限制
 
 - 仅支持 aiocqhttp / OneBot v11；
+- 跟贴依赖协议端上报 `group_msg_emoji_like`；如果 NapCat/Lagrange 没有上报某条消息的表情回应，插件收不到事件。可在审计日志查看 `reaction_seen` 是否到达；
+- 同一条消息的同一个表情只跟一次，避免再次调用 `set_msg_emoji_like` 把 Bot 已有表情取消；不同用户重复贴同一表情不会重复触发；
+- 跟贴受概率与群级冷却限制；管理员与其他用户走同一套逻辑；
 - `set_msg_emoji_like` 需要 NapCat / Lagrange 支持；
 - 表情 ID 来自公开表情表，需在目标协议端真机验证；
 - AstrBot 不暴露 Bot 发消息 ID，撤回只支持“被引用消息”；

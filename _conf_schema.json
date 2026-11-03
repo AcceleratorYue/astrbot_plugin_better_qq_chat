@@ -38,6 +38,42 @@
     "type": "bool",
     "default": true
   },
+  "poke_back_enabled": {
+    "description": "被戳时反戳",
+    "type": "bool",
+    "default": true,
+    "hint": "Bot 被戳后，按概率反戳发起者；和 poke_to_llm 的文本响应分开配置。"
+  },
+  "poke_back_probability": {
+    "description": "被戳反戳概率",
+    "type": "float",
+    "default": 0.35,
+    "min": 0.0,
+    "max": 1.0,
+    "hint": "默认 35%；设为 0 等于关闭反戳。"
+  },
+  "poke_back_cooldown": {
+    "description": "被戳反戳冷却（秒/群或用户）",
+    "type": "int",
+    "default": 30,
+    "min": 0,
+    "max": 3600
+  },
+  "poke_back_allow_private": {
+    "description": "私聊被戳时也允许反戳",
+    "type": "bool",
+    "default": true
+  },
+  "poke_back_mode": {
+    "description": "被戳反戳与其他响应插件的协作方式",
+    "type": "string",
+    "options": [
+      "coexist",
+      "only_if_no_llm_poke"
+    ],
+    "default": "coexist",
+    "hint": "coexist=反戳可以与 poke_to_llm 的文本响应同时发生；only_if_no_llm_poke=检测到 poke_to_llm 已启用时只记录不反戳，避免双重响应。"
+  },
   "follow_poke_enabled": {
     "description": "别人戳别人时自动跟戳",
     "type": "bool",

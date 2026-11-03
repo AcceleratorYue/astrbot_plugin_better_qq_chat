@@ -46,7 +46,7 @@ from .core.rules import (
 
 PLUGIN_NAME = "astrbot_plugin_better_qq_chat"
 DISPLAY_NAME = "更好的QQ聊天交互"
-VERSION = "0.1.1"
+VERSION = "0.1.3"
 LOG = f"[{PLUGIN_NAME}]"
 WAKE_HINT = (
     "[互动提示] 如果当前语气和氛围合适，可以考虑用 qq_poke 戳一下唤醒你的人；"
@@ -69,16 +69,20 @@ class BetterQQChatPlugin(Star):
         self.data_dir = Path(StarTools.get_data_dir(PLUGIN_NAME))
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.follow_cd = Cooldown(as_float(self._cfg("follow_poke_cooldown", 30), 30))
+        self.poke_back_cd = Cooldown(
+            as_float(self._cfg("poke_back_cooldown", 30), 30)
+        )
         self.react_cd = Cooldown(
             as_float(self._cfg("reaction_follow_cooldown", 30), 30)
         )
         self._reacted: OrderedDict[tuple[str, str, str], float] = OrderedDict()
         self._last_poked: dict[str, float] = {}
         logger.info(
-            "%s v%s 已加载 | 群跟戳概率 %.2f | 表情跟贴 %s",
+            "%s v%s 已加载 | 群跟戳概率 %.2f | 被戳反戳 %s | 表情跟贴 %s",
             LOG,
             VERSION,
             self._follow_probability(),
+            "开" if self._bool("poke_back_enabled", True) else "关",
             "开" if self._bool("reaction_follow_enabled", False) else "关",
         )
 
@@ -296,10 +300,36 @@ class BetterQQChatPlugin(Star):
         poke = parse_poke_notice(event)
         if poke is not None:
             await self._handle_poke_notice(event, poke)
+
+    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    @filter.platform_adapter_type(filter.PlatformAdapterType.AIOCQHTTP)
+    async def on_group_reaction(self, event: AstrMessageEvent) -> None:
+        """群表情回应单独监听，避免被只处理消息的入口过滤掉。"""
+
+        if not self._enabled() or not is_aiocqhttp(event):
             return
         reaction = parse_reaction_notice(event)
-        if reaction is not None:
-            await self._handle_reaction_notice(event, reaction)
+        if reaction is None:
+            return
+        raw = getattr(getattr(event, "message_obj", None), "raw_message", {}) or {}
+        user_id = raw.get("user_id", "") if isinstance(raw, dict) else ""
+        logger.debug(
+            "%s 收到表情回应 | user=%s | outgoing=%s | group=%s | msg=%s",
+            LOG,
+            user_id,
+            reaction.is_outgoing,
+            reaction.group_id,
+            reaction.message_id,
+        )
+        self._audit(
+            "reaction_seen",
+            {
+                "group": reaction.group_id,
+                "user": user_id,
+                "message_id": reaction.message_id,
+            },
+        )
+        await self._handle_reaction_notice(event, reaction)
 
     async def _handle_poke_notice(
         self, event: AstrMessageEvent, poke: PokeNotice
@@ -307,7 +337,6 @@ class BetterQQChatPlugin(Star):
         if poke.is_outgoing:
             return
         if poke.is_bot_target:
-            # 按产品决策：默认只记录，不主动发起 LLM。
             self._last_poked[poke.group_id or "_private"] = time.time()
             logger.info(
                 "%s 被戳 | user=%s | group=%s",
@@ -316,6 +345,7 @@ class BetterQQChatPlugin(Star):
                 poke.group_id or "私聊",
             )
             self._audit("poked", {"user": poke.user_id, "group": poke.group_id})
+            await self._handle_poke_back(event, poke)
             return
         if not poke.is_other_poke or not poke.group_id:
             return
@@ -359,6 +389,88 @@ class BetterQQChatPlugin(Star):
         logger.debug(
             "%s 跟戳 group=%s target=%s", LOG, poke.group_id, target
         )
+
+    async def _handle_poke_back(
+        self, event: AstrMessageEvent, poke: PokeNotice
+    ) -> None:
+        """被戳后按配置反戳发起者，与 poke_to_llm 的文本响应保持可区分。"""
+
+        if not self._bool("poke_back_enabled", True):
+            return
+        user_id = str(poke.user_id or "").strip()
+        self_id = str(event.get_self_id() or "")
+        if not user_id or user_id == "0" or user_id == self_id:
+            return
+        if self._user_blocked(user_id):
+            return
+        if poke.group_id:
+            if not self._group_allowed(poke.group_id):
+                return
+            scope = poke.group_id
+        else:
+            if not self._bool("poke_back_allow_private", True):
+                return
+            scope = f"private:{user_id}"
+
+        mode = self._str("poke_back_mode", "coexist").lower()
+        if mode == "only_if_no_llm_poke" and self._other_poke_responder_active():
+            self._audit(
+                "poke_back_skipped",
+                {"user": user_id, "group": poke.group_id, "reason": "other_poke_responder"},
+            )
+            return
+
+        probability = as_float(self._cfg("poke_back_probability", 0.35), 0.35)
+        if not should_follow(probability, self.poke_back_cd, scope):
+            return
+
+        try:
+            if poke.group_id:
+                await call_action(
+                    event,
+                    "group_poke",
+                    group_id=int(poke.group_id),
+                    user_id=int(user_id),
+                )
+            else:
+                await call_action(event, "friend_poke", user_id=int(user_id))
+        except OneBotError:
+            try:
+                params = {"user_id": int(user_id)}
+                if poke.group_id:
+                    params["group_id"] = int(poke.group_id)
+                await call_action(event, "send_poke", **params)
+            except OneBotError as exc:
+                logger.debug("%s 被戳反戳失败: %s", LOG, exc)
+                self._audit(
+                    "poke_back_failed",
+                    {"user": user_id, "group": poke.group_id},
+                )
+                return
+
+        self.poke_back_cd.mark(scope)
+        self._audit(
+            "poke_back",
+            {"user": user_id, "group": poke.group_id, "mode": mode},
+        )
+        logger.debug("%s 被戳反戳 | user=%s | group=%s", LOG, user_id, poke.group_id or "私聊")
+
+    def _other_poke_responder_active(self) -> bool:
+        """检测 poke_to_llm 是否已启用，用于避免双重响应。"""
+
+        try:
+            star = self.context.get_registered_star("astrbot_plugin_poke_to_llm")
+        except Exception:
+            star = None
+        if not star or not getattr(star, "activated", False):
+            return False
+        config = getattr(star, "config", None)
+        try:
+            if config is not None and config.get("enable", True) is False:
+                return False
+        except Exception:
+            pass
+        return True
 
     async def _handle_reaction_notice(
         self, event: AstrMessageEvent, reaction: ReactionNotice
