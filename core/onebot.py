@@ -94,7 +94,13 @@ def resolve_user(event: AstrMessageEvent, user: Any) -> str:
             raise OneBotError("at 参数格式应为 at 或 at:N。")
         index = int(suffix or "1") - 1
         try:
-            mentions = [c for c in event.get_messages() if isinstance(c, At)]
+            self_id = str(event.get_self_id() or "")
+            mentions = [
+                c
+                for c in event.get_messages()
+                if isinstance(c, At)
+                and str(getattr(c, "qq", "") or "") != self_id
+            ]
         except Exception:
             mentions = []
         if index < 0 or index >= len(mentions):

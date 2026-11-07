@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from collections import OrderedDict
@@ -14,7 +15,7 @@ from typing import Any
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, MessageChain, filter
-from astrbot.api.message_components import Image
+from astrbot.api.message_components import At, Image
 from astrbot.api.star import Context, Star, StarTools
 
 from .core.avatar import avatar_url
@@ -46,7 +47,7 @@ from .core.rules import (
 
 PLUGIN_NAME = "astrbot_plugin_better_qq_chat"
 DISPLAY_NAME = "更好的QQ聊天交互"
-VERSION = "0.1.3"
+VERSION = "0.1.4"
 LOG = f"[{PLUGIN_NAME}]"
 WAKE_HINT = (
     "[互动提示] 如果当前语气和氛围合适，可以考虑用 qq_poke 戳一下唤醒你的人；"
@@ -232,12 +233,12 @@ class BetterQQChatPlugin(Star):
         user: str = "sender",
         send_to_chat: bool = False,
     ) -> str:
-        """获取 QQ 用户头像。
+        """获取 QQ 用户头像并识别头像画面。
 
-        默认返回高清头像 URL；send_to_chat=true 时直接把头像图片发到当前会话。
+        默认返回高清头像 URL 和头像画面描述；send_to_chat=true 时还会把头像图片发到当前会话。
 
         Args:
-            user(string): 目标，支持 sender、quoted_sender、at、at:1、QQ 号。
+            user(string): 目标，支持 sender、quoted_sender、at、at:1、QQ 号；at 会跳过 Bot 自己。
             send_to_chat(bool): 是否把头像图片直接发到聊天。
         """
         if not self._enabled() or not self._bool("avatar_tool_enabled", True):
@@ -254,9 +255,45 @@ class BetterQQChatPlugin(Star):
                 await event.send(MessageChain([Image.fromURL(url)]))
             except Exception as exc:  # noqa: BLE001
                 logger.warning("%s 发送头像失败: %s", LOG, exc)
-                return f"头像链接：{url}（发送图片失败：{exc}）"
-        self._audit("avatar", {"target": qq, "sent": bool(send_to_chat)})
-        return f"头像链接：{url}" + ("，已发送到聊天。" if send_to_chat else "")
+        description = await self._describe_avatar(url)
+        self._audit(
+            "avatar",
+            {
+                "target": qq,
+                "sent": bool(send_to_chat),
+                "described": bool(description),
+            },
+        )
+        if description:
+            return f"头像画面：{description}\n头像链接：{url}"
+        return f"头像链接：{url}（未能获取头像画面描述）"
+
+    async def _describe_avatar(self, url: str) -> str:
+        """用独立的功能 Provider 识图，避免主聊天模型没有图像能力。"""
+
+        provider_id = self._str("avatar_vision_provider_id", "deepseek")
+        if not provider_id:
+            return ""
+        timeout = self._int("avatar_vision_timeout", 30, 5, 120)
+        prompt = self._str(
+            "avatar_vision_prompt",
+            "请客观描述这张 QQ 头像的画面内容：主体、颜色、风格、表情和可见文字。"
+            "不要猜测身份，不要输出思考过程，80 字以内。",
+        )
+        try:
+            response = await asyncio.wait_for(
+                self.context.llm_generate(
+                    chat_provider_id=provider_id,
+                    prompt=prompt,
+                    image_urls=[url],
+                ),
+                timeout=timeout,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("%s 头像识图失败（%s）: %s", LOG, provider_id, exc)
+            return ""
+        text = str(getattr(response, "completion_text", "") or "").strip()
+        return " ".join(text.split())[:500]
 
     # ------------------------------------------------------------------ #
     # 唤醒提示
@@ -286,6 +323,37 @@ class BetterQQChatPlugin(Star):
         if "qq_poke" in prompt:
             return
         hint = WAKE_HINT if wake_allowed else ACTIVE_REPLY_HINT
+        req.system_prompt = prompt + ("\n\n" if prompt else "") + hint
+
+    @filter.on_llm_request(priority=-49)
+    async def inject_avatar_hint(self, event: AstrMessageEvent, req) -> None:
+        """群友问头像时明确引导模型用头像工具，而不是拿群图片当头像。"""
+
+        if not self._enabled() or not is_aiocqhttp(event):
+            return
+        message = str(getattr(event, "message_str", "") or "")
+        if "头像" not in message:
+            return
+        try:
+            self_id = str(event.get_self_id() or "")
+            mentions = [
+                c
+                for c in event.get_messages()
+                if isinstance(c, At)
+                and str(getattr(c, "qq", "") or "") != self_id
+            ]
+        except Exception:
+            mentions = []
+        if not mentions:
+            return
+        prompt = str(getattr(req, "system_prompt", "") or "")
+        if "[头像提示]" in prompt:
+            return
+        hint = (
+            "[头像提示] 用户在当前消息里想查看被艾特群成员的 QQ 头像。"
+            "请调用 qq_avatar 工具（user 用 \"at\"），不要把群聊里的图片当成头像；"
+            "工具会返回头像画面描述和链接。"
+        )
         req.system_prompt = prompt + ("\n\n" if prompt else "") + hint
 
     # ------------------------------------------------------------------ #

@@ -162,5 +162,23 @@
     "description": "启用 qq_avatar 工具",
     "type": "bool",
     "default": true
+  },
+  "avatar_vision_provider_id": {
+    "description": "头像识图使用的 Provider",
+    "type": "string",
+    "default": "deepseek",
+    "hint": "qq_avatar 会调用该 Provider 描述头像画面；留空则只返回 URL，不识别。"
+  },
+  "avatar_vision_timeout": {
+    "description": "头像识图超时（秒）",
+    "type": "int",
+    "default": 30,
+    "min": 5,
+    "max": 120
+  },
+  "avatar_vision_prompt": {
+    "description": "头像识图提示词",
+    "type": "string",
+    "default": "请客观描述这张 QQ 头像的画面内容：主体、颜色、风格、表情和可见文字。不要猜测身份，不要输出思考过程，80 字以内。"
   }
 }

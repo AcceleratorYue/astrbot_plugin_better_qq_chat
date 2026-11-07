@@ -9,7 +9,7 @@
 - **被戳反戳**：Bot 被戳时，按概率反戳发起者；可与 `poke_to_llm` 的文本响应共存或避让；
 - **表情回应**：`qq_react` 给当前/被引用消息贴 QQ 小表情；可选跟贴；
 - **撤回**：`qq_recall` 撤回用户直接引用的消息；
-- **头像**：`qq_avatar` 获取 QQ 用户高清头像，可选直接发到聊天。
+- **头像**：`qq_avatar` 获取 QQ 用户高清头像，调用独立视觉模型识别头像画面，可选直接发到聊天。
 
 > 仅支持 **aiocqhttp / OneBot v11（NapCat / Lagrange）**。  
 > 不修改消息链，不额外调用 LLM 生成跟戳/跟贴内容。
@@ -85,8 +85,12 @@ qq_avatar(user="sender", send_to_chat=False)
 ```
 
 - 使用 `https://q1.qlogo.cn/g?b=qq&nk={qq}&s=640`；
-- 默认返回 URL；
-- `send_to_chat=true` 时直接发送头像图片。
+- `user` 支持 `sender`、`quoted_sender`、`at`、`at:N`、QQ 号；
+- `at` / `at:N` 会跳过 Bot 自己（所以 `@Bot @群友` 时 `at` 选中群友）；
+- 默认返回头像 URL 和头像画面描述；
+- 头像画面描述使用 `avatar_vision_provider_id` 指定的视觉 Provider，默认 `deepseek`；
+- `send_to_chat=true` 时还会直接发送头像图片；
+- 识图失败时仍返回头像 URL，不阻断调用。
 
 ## 自动行为
 
@@ -191,6 +195,9 @@ Bot 被用户戳时，除了记录事件，还可以按配置反戳发起者：
 | `recall_tool_enabled` | `true` | 启用 `qq_recall` |
 | `recall_allow_others` | `true` | 允许管理员/群管撤回他人被引用消息 |
 | `avatar_tool_enabled` | `true` | 启用 `qq_avatar` |
+| `avatar_vision_provider_id` | `deepseek` | 头像识图使用的 Provider；留空则只返回 URL |
+| `avatar_vision_timeout` | `30` | 头像识图超时（秒） |
+| `avatar_vision_prompt` | 中文提示词 | 头像识图提示词 |
 
 ## 权限与安全
 

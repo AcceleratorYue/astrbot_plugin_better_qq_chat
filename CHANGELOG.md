@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4
+
+- 修复 `resolve_user` 的 `at` 解析：群聊消息同时 @Bot 和 @目标时，默认跳过 Bot，`at` 解析到目标群成员而不是 Bot 自己；
+- `qq_avatar` 改为“头像 URL + 头像画面识别”：内部调用配置的独立视觉 Provider（默认 `deepseek`）描述头像，再返回给主聊天模型；
+- 新增 `avatar_vision_provider_id`、`avatar_vision_timeout`、`avatar_vision_prompt` 配置；留空 `avatar_vision_provider_id` 可退回只返回 URL；
+- 新增头像意图提示：用户问被 @ 群成员头像时，引导模型调用 `qq_avatar`，不要拿群聊图片代替头像；
+- 头像识图失败时仍返回头像链接，不阻断工具调用。
+
 ## 0.1.3
 
 - 新增“被戳反戳”：Bot 被戳时按概率反戳发起者，支持群聊/私聊、概率、冷却和黑白名单；
