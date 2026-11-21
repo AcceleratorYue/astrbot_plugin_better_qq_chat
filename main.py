@@ -47,7 +47,7 @@ from .core.rules import (
 
 PLUGIN_NAME = "astrbot_plugin_better_qq_chat"
 DISPLAY_NAME = "更好的QQ聊天交互"
-VERSION = "0.1.4"
+VERSION = "0.1.5"
 LOG = f"[{PLUGIN_NAME}]"
 WAKE_HINT = (
     "[互动提示] 如果当前语气和氛围合适，可以考虑用 qq_poke 戳一下唤醒你的人；"
@@ -271,7 +271,9 @@ class BetterQQChatPlugin(Star):
     async def _describe_avatar(self, url: str) -> str:
         """用独立的功能 Provider 识图，避免主聊天模型没有图像能力。"""
 
-        provider_id = self._str("avatar_vision_provider_id", "deepseek")
+        provider_id = self._str(
+            "avatar_vision_provider_id", "gemini_relay_source/cc-gemini-3.7-flash"
+        )
         if not provider_id:
             return ""
         timeout = self._int("avatar_vision_timeout", 30, 5, 120)
@@ -365,17 +367,14 @@ class BetterQQChatPlugin(Star):
     async def on_notice(self, event: AstrMessageEvent) -> None:
         if not self._enabled() or not is_aiocqhttp(event):
             return
+
         poke = parse_poke_notice(event)
         if poke is not None:
             await self._handle_poke_notice(event, poke)
 
-    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
-    @filter.platform_adapter_type(filter.PlatformAdapterType.AIOCQHTTP)
-    async def on_group_reaction(self, event: AstrMessageEvent) -> None:
-        """群表情回应单独监听，避免被只处理消息的入口过滤掉。"""
-
-        if not self._enabled() or not is_aiocqhttp(event):
-            return
+        # 不再单独用 GROUP_MESSAGE 过滤表情回应：
+        # AstrBot 升级或重启后，notice 的 message_type 可能是 OTHER_MESSAGE，
+        # 之前挂在 GROUP_MESSAGE 上的监听会静默失效。
         reaction = parse_reaction_notice(event)
         if reaction is None:
             return

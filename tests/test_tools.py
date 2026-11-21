@@ -87,6 +87,7 @@ class ToolTests(unittest.TestCase):
         }
         self.plugin.data_dir = Path(self.tmp.name)
         self.plugin.follow_cd = Cooldown(0)
+        self.plugin.poke_back_cd = Cooldown(0)
         self.plugin.react_cd = Cooldown(0)
         self.plugin._reacted = {}
         self.plugin._last_poked = {}

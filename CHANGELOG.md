@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+- 合并表情回应与戳一戳 notice 入口，统一使用 `ALL` 监听，避免 AstrBot 升级或重启后 notice 被归类为 `OTHER_MESSAGE` 时 `GROUP_MESSAGE` 监听静默失效；
+- 表情回应不再依赖单独的 `GROUP_MESSAGE` handler。
+
 ## 0.1.4
 
 - 修复 `resolve_user` 的 `at` 解析：群聊消息同时 @Bot 和 @目标时，默认跳过 Bot，`at` 解析到目标群成员而不是 Bot 自己；

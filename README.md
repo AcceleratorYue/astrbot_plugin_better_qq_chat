@@ -2,6 +2,10 @@
 
 # 更好的QQ聊天交互 · `astrbot_plugin_better_qq_chat`
 
+> AstrBot 插件 · 版本 `0.1.5` · 作者 AcceleratorYue · MIT License  
+> 仓库：<https://github.com/AcceleratorYue/astrbot_plugin_better_qq_chat>  
+> 兼容：AstrBot `>=4.24,<5`，平台 `aiocqhttp`
+
 给 [AstrBot](https://github.com/AstrBotDevs/AstrBot) 的 QQ Bot 增加更自然的互动能力：
 
 - **戳一戳**：LLM 可自主调用 `qq_poke`；被唤醒时只给一句可选提示，不强制；

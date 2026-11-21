@@ -13,9 +13,10 @@ desc: |-
 
   仅支持 aiocqhttp（OneBot v11 / NapCat / Lagrange）。
   不修改消息链，不额外调用 LLM 生成跟戳/跟贴内容。
-version: 0.1.4
+version: 0.1.5
 author: AcceleratorYue
 repo: https://github.com/AcceleratorYue/astrbot_plugin_better_qq_chat
+social_link: https://github.com/AcceleratorYue
 astrbot_version: ">=4.24,<5"
 support_platforms:
   - aiocqhttp
